@@ -231,26 +231,6 @@ export default function MapImpl({
                   title.textContent = item.name;
                   popupContent.appendChild(title);
                   
-                  // Add item condition if available
-                  if (item.condition) {
-                    const condition = document.createElement('p');
-                    condition.className = 'text-sm text-gray-600 mb-1';
-                    condition.textContent = `Condition: ${item.condition}`;
-                    popupContent.appendChild(condition);
-                  }
-                  
-                  // Description preview (truncated)
-                  if (item.description) {
-                    const description = document.createElement('p');
-                    description.className = 'text-sm text-gray-500 mb-2';
-                    description.style.display = '-webkit-box';
-                    description.style.webkitLineClamp = '2';
-                    description.style.webkitBoxOrient = 'vertical';
-                    description.style.overflow = 'hidden';
-                    description.textContent = item.description;
-                    popupContent.appendChild(description);
-                  }
-                  
                   // Link to item detail
                   const link = document.createElement('a');
                   link.href = `/items/${item.id}`;

@@ -246,7 +246,7 @@ export default function EditItemClient({ itemId }: EditItemClientProps) {
     try {
       setIsSearching(true);
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&accept-language=en`
       );
       
       if (!response.ok) {

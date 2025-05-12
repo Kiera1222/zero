@@ -25,7 +25,7 @@ export default function NewItemPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 辅助函数，用于处理用户重新注册
+  // Helper function for user re-registration
   const handleReregister = () => {
     signOut({ callbackUrl: "/register" });
   };
@@ -163,11 +163,11 @@ export default function NewItemPage() {
       console.log("Response status:", response.status);
       
       if (!response.ok) {
-        // 捕获响应文本，用于调试
+        // Capture response text for debugging
         const responseText = await response.text();
         console.error("Raw response text:", responseText);
         
-        // 尝试解析为JSON
+        // Try to parse as JSON
         let errorData = {};
         try {
           errorData = JSON.parse(responseText);
@@ -177,11 +177,11 @@ export default function NewItemPage() {
         
         console.error("Create item error details:", errorData);
         
-        // 特殊处理用户不存在的情况
+        // Special handling for user not found error
         if (response.status === 404 && (errorData as any).error === "User not found") {
-          // 数据库可能已重置，需要注销并重新登录
-          setError("您的用户账户在数据库中不存在。这可能是因为数据库已重置。请注销并重新注册。");
-          // 可选：提供一个按钮引导用户注销
+          // Database might have been reset, need to log out and register again
+          setError("Your user account doesn't exist in the database. This might be because the database was reset. Please log out and register again.");
+          // Optional: provide a button to guide user to log out
           return;
         }
         
@@ -222,12 +222,12 @@ export default function NewItemPage() {
             {error && (
               <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
                 <p>{error}</p>
-                {error.includes("用户账户在数据库中不存在") && (
+                {error.includes("Your user account doesn't exist") && (
                   <button
                     onClick={handleReregister}
                     className="mt-2 text-sm bg-red-600 text-white py-1 px-3 rounded hover:bg-red-700"
                   >
-                    注销并重新注册
+                    Log out and register again
                   </button>
                 )}
               </div>
