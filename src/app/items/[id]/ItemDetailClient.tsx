@@ -42,7 +42,7 @@ export default function ItemDetailClient({ itemId }: ItemDetailClientProps) {
       const fetchLocationText = async () => {
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.latitude}&lon=${item.longitude}&zoom=18&addressdetails=1`
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${item.latitude}&lon=${item.longitude}&zoom=18&addressdetails=1&accept-language=en`
           );
           const data = await response.json();
           
