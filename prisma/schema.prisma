@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  items         Item[]
+  received      Message[] @relation("ReceivedMessages")
+  messages      Message[] @relation("SentMessages")
+}
+
+model Item {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  image       String?
+  condition   String?   @default("Good")
+  pickupTime  String?
+  latitude    Float
+  longitude   Float
+  status      String    @default("available")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  ownerId     String
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  messages    Message[]
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  createdAt  DateTime @default(now())
+  senderId   String
+  receiverId String
+  itemId     String?
+  item       Item?    @relation(fields: [itemId], references: [id])
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+}
