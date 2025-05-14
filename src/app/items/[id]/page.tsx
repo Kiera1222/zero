@@ -1,14 +1,14 @@
 import ItemDetailClient from './ItemDetailClient';
 
 interface ItemDetailPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-// 修改为异步函数，等待 params
+// Modified to wait for params
 export default async function ItemDetailPage({ params }: ItemDetailPageProps) {
-  // 确保 params 是已解析的
-  const itemId = params.id;
-  return <ItemDetailClient itemId={itemId} />;
+  // Ensure params are resolved
+  const { id } = await params;
+  return <ItemDetailClient itemId={id} />;
 } 
