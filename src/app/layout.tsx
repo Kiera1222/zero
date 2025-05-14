@@ -17,14 +17,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 當前在 dev 環境中使用的端口
-  const currentPort = process.env.PORT || '3001';
+  // Determine if we're in production or development
+  const isDevelopment = process.env.NODE_ENV === 'development';
   
   return (
     <html lang="en">
       <head>
-        {/* 確保正確的資源基本 URL */}
-        <base href={`http://localhost:${currentPort}`} />
+        {/* Only include base tag in development */}
+        {isDevelopment && (
+          <base href={`http://localhost:${process.env.PORT || '3001'}`} />
+        )}
         
         {/* 預載入 Leaflet CSS */}
         <link 
@@ -34,14 +36,16 @@ export default function RootLayout({
           crossOrigin=""
         />
         
-        {/* 修復跨端口問題的腳本 */}
+        {/* Script to fix cross-origin issues and ensure proper URL resolution */}
         <Script id="port-correction" strategy="beforeInteractive">
           {`
-            // 確保加載資源時使用當前窗口的主機和端口
+            // Ensure proper URL resolution when loading resources
             (function() {
+              // In production, use the window's origin
+              // In development, fall back to localhost with port
               window.__NEXT_PORT = window.location.port || '3000';
               
-              // 攔截 fetch 請求，確保使用當前窗口的主機和端口
+              // Intercept fetch requests to ensure proper URL resolution
               const originalFetch = window.fetch;
               window.fetch = function(url, options) {
                 if (typeof url === 'string' && url.startsWith('/')) {

@@ -23,6 +23,24 @@ read -p "DATABASE_URL: " DB_URL
 # Add the database URL to .env.production
 echo "DATABASE_URL=\"$DB_URL\"" >> .env.production
 
+# Configure NextAuth.js
+echo
+echo "Please enter your production domain URL for NextAuth.js:"
+echo "(Format: https://yourdomain.com or https://username.uber.space)"
+read -p "NEXTAUTH_URL: " NEXTAUTH_URL
+
+# Add the NEXTAUTH_URL to .env.production
+echo "NEXTAUTH_URL=\"$NEXTAUTH_URL\"" >> .env.production
+
+# Add NEXTAUTH_SECRET to .env.production
+if [ -f "nextauth_secret.txt" ]; then
+  NEXTAUTH_SECRET=$(cat nextauth_secret.txt)
+else
+  NEXTAUTH_SECRET=$(openssl rand -base64 32)
+  echo $NEXTAUTH_SECRET > nextauth_secret.txt
+fi
+echo "NEXTAUTH_SECRET=\"$NEXTAUTH_SECRET\"" >> .env.production
+
 # Migrate the database
 echo "Setting up database..."
 echo "Would you like to:"
@@ -39,13 +57,13 @@ fi
 
 # Generate Prisma client and push schema
 echo "Generating Prisma client..."
-npx prisma generate
-echo "Pushing schema to database..."
-npx prisma db push
+NODE_ENV=production npx prisma generate
+echo "Pushing schema to PostgreSQL database..."
+NODE_ENV=production npx prisma db push
 
 # Build the application
 echo "Building the application for production..."
-npm run build
+NODE_ENV=production npm run build
 
 if [ $? -eq 0 ]; then
   echo "✅ Build successful!"
@@ -56,7 +74,7 @@ if [ $? -eq 0 ]; then
   echo "1. Start the production server with:"
   echo "   npm run start"
   echo ""
-  echo "2. Access the app at: http://localhost:3000"
+  echo "2. Access the app at: $NEXTAUTH_URL"
   echo ""
   echo "To deploy to a server:"
   echo "1. Copy the following files to your server:"
