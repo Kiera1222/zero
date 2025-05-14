@@ -106,27 +106,28 @@ export default function EditItemClient({ itemId }: EditItemClientProps) {
       
       // 检查响应状态
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`上传错误 (${response.status}):`, errorText);
-        
-        // 尝试解析错误信息
-        let errorMessage = '图片上传失败';
-        let errorDetails = '';
+        let errorMessage = `上传失败 (HTTP ${response.status})`;
         
         try {
-          const errorData = JSON.parse(errorText);
-          if (errorData.error) {
-            errorMessage = errorData.error;
+          // 尝试获取错误响应文本
+          const errorText = await response.text();
+          console.error(`上传错误 (${response.status}):`, errorText);
+          
+          // 尝试解析 JSON 错误信息
+          try {
+            const errorData = JSON.parse(errorText);
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (parseError) {
+            // 如果不是 JSON，使用原始错误文本
+            console.error('无法解析错误响应:', parseError);
           }
-          if (errorData.details) {
-            errorDetails = errorData.details;
-          }
-        } catch (e) {
-          console.error('无法解析错误响应:', e);
-          errorMessage = `上传失败 (HTTP ${response.status})`;
+        } catch (readError) {
+          console.error('无法读取错误响应:', readError);
         }
         
-        throw new Error(`${errorMessage}${errorDetails ? ': ' + errorDetails : ''}`);
+        throw new Error(errorMessage);
       }
       
       // 解析成功响应

@@ -87,6 +87,7 @@ export default function HomePage() {
   useEffect(() => {
     const fetchItems = async () => {
       try {
+        setLoading(true);
         const response = await fetch('/api/public/items');
         if (!response.ok) {
           throw new Error('Failed to fetch items');
@@ -95,6 +96,8 @@ export default function HomePage() {
         setItems(data);
       } catch (error) {
         console.error('Error fetching items:', error);
+        // Set items to empty array on error to prevent undefined errors
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -225,13 +228,21 @@ export default function HomePage() {
                   <div className="bg-white shadow rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                     <div className="relative h-48 w-full bg-gray-200">
                       {(item.imageUrl || item.image) ? (
-                        <Image
-                          src={item.imageUrl || item.image || ''}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                          unoptimized={true}
-                        />
+                        <div className="w-full h-full relative">
+                          <Image
+                            src={item.imageUrl || item.image || ''}
+                            alt={item.name}
+                            fill
+                            className="object-cover"
+                            unoptimized={true}
+                            onError={(e) => {
+                              // If image fails to load, show fallback
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement!.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-500">Image unavailable</div>';
+                            }}
+                          />
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-500">
                           No image

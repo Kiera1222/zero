@@ -91,12 +91,14 @@ export async function PUT(
     
     // Check if an image was uploaded
     const imageFile = formData.get('image') as File | null;
-    let imageUrl;
+    let image;
 
     if (imageFile && imageFile.size > 0) {
-      // In a real app, you would upload the image to a storage service
-      // For demo purposes, we'll just use a placeholder
-      imageUrl = 'https://via.placeholder.com/300';
+      // Convert image to base64 data URL
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const base64Image = buffer.toString('base64');
+      image = `data:${imageFile.type};base64,${base64Image}`;
     }
 
     // Update item in database with explicit type
@@ -105,11 +107,10 @@ export async function PUT(
       data: {
         name,
         description,
-        // @ts-ignore - Condition field exists in our schema but TypeScript doesn't recognize it
         condition,
         latitude,
         longitude,
-        ...(imageUrl && { imageUrl }),
+        ...(image && { image }),
       },
       include: {
         owner: {
@@ -124,10 +125,8 @@ export async function PUT(
     });
 
     // Map owner to user for frontend consistency
-    // @ts-ignore - owner property is included in the query result
     const responseItem = {
       ...updatedItem,
-      // @ts-ignore - owner is defined in the include
       user: updatedItem.owner,
     };
 
@@ -237,11 +236,23 @@ export async function PATCH(
         { status: 400 }
       );
     }
+
+    // Extract imageUrl (if provided) and other data
+    const { imageUrl, ...otherData } = data;
+
+    // Prepare update data
+    const updateData = { ...otherData };
+    
+    // Handle image if provided
+    if (imageUrl) {
+      // Store the image URL (could be a data URL from our upload endpoint)
+      updateData.image = imageUrl;
+    }
     
     // Update item in database
     const updatedItem = await prisma.item.update({
       where: { id },
-      data,
+      data: updateData,
       include: {
         owner: {
           select: {

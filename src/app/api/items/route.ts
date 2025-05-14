@@ -67,25 +67,24 @@ export async function POST(request: Request) {
     console.log(`POST /api/items: 找到用户, id=${user.id}`);
     
     // Handle image upload if provided
-    let imagePath = null;
+    let imageData = null;
     if (imageFile) {
       console.log(`POST /api/items: 处理图片上传, size=${imageFile.size}, type=${imageFile.type}`);
-      const bytes = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      
-      // Generate unique filename
-      const fileName = `${Date.now()}-${imageFile.name.replace(/\s/g, '-')}`;
-      const path = `./public/uploads/${fileName}`;
-      
-      // Save file to public directory
-      const fs = require('fs');
-      const { promises: fsPromises } = fs;
-      
-      // Ensure uploads directory exists
-      await fsPromises.mkdir('./public/uploads', { recursive: true });
-      await fsPromises.writeFile(path, buffer);
-      
-      imagePath = `/uploads/${fileName}`;
+      try {
+        const bytes = await imageFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        
+        // Convert to base64 for storage
+        const base64Image = buffer.toString('base64');
+        imageData = `data:${imageFile.type};base64,${base64Image}`;
+        console.log(`POST /api/items: 图片转换为 base64 成功, 大小=${Math.round(imageData.length / 1024)}KB`);
+      } catch (imageError) {
+        console.error("POST /api/items: 处理图片时出错", imageError);
+        return NextResponse.json(
+          { error: "Failed to process image", details: imageError instanceof Error ? imageError.message : "Unknown error" },
+          { status: 500 }
+        );
+      }
     }
 
     // 使用类型断言绕过类型检查
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
       description,
       condition,
       pickupTime: pickupTime || undefined,
-      image: imagePath,
+      image: imageData,
       latitude,
       longitude,
       ownerId: user.id,
