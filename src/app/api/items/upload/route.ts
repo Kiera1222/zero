@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import { getServerSession } from 'next-auth';
 import { randomUUID } from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { ensureUploadsDir } from '@/lib/utils';
 
 /**
  * Image upload API handler
- * This endpoint accepts files in form data, converts them to base64 data URLs,
- * and returns the data URL to be stored directly in the database
+ * This endpoint accepts files in form data, saves them to the filesystem,
+ * and returns the public URL path to be stored in the database
  */
 export async function POST(request: NextRequest) {
   try {
@@ -55,29 +58,38 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Process file data - convert to base64 URL
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const base64Image = buffer.toString('base64');
+      // Ensure the uploads directory exists
+      if (!ensureUploadsDir()) {
+        throw new Error("Failed to ensure uploads directory exists");
+      }
       
       // Get file extension
       const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       const validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
       const fileExt = validExtensions.includes(extension) ? extension : 'jpg';
       
-      // Create base64 URL (can be used directly in img tags)
-      const dataUrl = `data:${file.type};base64,${base64Image}`;
-      
       // Generate random filename
       const uuid = randomUUID();
       const fileName = `${uuid}.${fileExt}`;
       
-      console.log('Image processed successfully, returning data URL');
+      // Set file path
+      const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
       
-      // Return data URL
+      // Convert file to buffer and save to disk
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      
+      // Write file to disk
+      fs.writeFileSync(filePath, buffer);
+      
+      console.log(`File saved successfully to ${filePath}`);
+      
+      // Return the public URL for the file
+      const publicUrl = `/uploads/${fileName}`;
+      
       return new NextResponse(
         JSON.stringify({ 
-          url: dataUrl,
+          url: publicUrl,
           fileName: fileName,
           size: file.size,
           type: file.type

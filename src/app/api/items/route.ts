@@ -71,13 +71,27 @@ export async function POST(request: Request) {
     if (imageFile) {
       console.log(`POST /api/items: 处理图片上传, size=${imageFile.size}, type=${imageFile.type}`);
       try {
-        const bytes = await imageFile.arrayBuffer();
-        const buffer = Buffer.from(bytes);
+        // Create a FormData object for uploading
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', imageFile);
         
-        // Convert to base64 for storage
-        const base64Image = buffer.toString('base64');
-        imageData = `data:${imageFile.type};base64,${base64Image}`;
-        console.log(`POST /api/items: 图片转换为 base64 成功, 大小=${Math.round(imageData.length / 1024)}KB`);
+        // Send the image to the upload API
+        const uploadResponse = await fetch(new URL('/api/items/upload', request.url).toString(), {
+          method: 'POST',
+          body: uploadFormData,
+          headers: {
+            // Include the Authorization header with the session token
+            Cookie: request.headers.get('cookie') || '',
+          },
+        });
+        
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed with status ${uploadResponse.status}`);
+        }
+        
+        const uploadResult = await uploadResponse.json();
+        imageData = uploadResult.url; // Store the file path, not base64 data
+        console.log(`POST /api/items: 图片上传成功, 路径=${imageData}`);
       } catch (imageError) {
         console.error("POST /api/items: 处理图片时出错", imageError);
         return NextResponse.json(

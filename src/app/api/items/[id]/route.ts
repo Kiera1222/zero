@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/options';
 import { prisma } from '@/lib/prisma';
+import { deleteImageFile } from '@/lib/utils';
 
 export async function GET(
   request: Request,
@@ -65,7 +66,7 @@ export async function PUT(
     // Check if item exists and belongs to user
     const existingItem = await prisma.item.findUnique({
       where: { id },
-      select: { id: true, ownerId: true },
+      select: { id: true, ownerId: true, image: true },
     });
 
     if (!existingItem) {
@@ -91,14 +92,37 @@ export async function PUT(
     
     // Check if an image was uploaded
     const imageFile = formData.get('image') as File | null;
-    let image;
+    let image = existingItem.image;
 
     if (imageFile && imageFile.size > 0) {
-      // Convert image to base64 data URL
-      const bytes = await imageFile.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const base64Image = buffer.toString('base64');
-      image = `data:${imageFile.type};base64,${base64Image}`;
+      // Upload the image using the upload API endpoint
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', imageFile);
+      
+      const uploadResponse = await fetch(new URL('/api/items/upload', request.url).toString(), {
+        method: 'POST',
+        body: uploadFormData,
+        headers: {
+          // Include the Authorization header with the session token
+          Cookie: request.headers.get('cookie') || '',
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        return NextResponse.json(
+          { error: "Failed to upload image" },
+          { status: 500 }
+        );
+      }
+      
+      const uploadResult = await uploadResponse.json();
+      
+      // Delete the previous image if it exists
+      if (existingItem.image) {
+        deleteImageFile(existingItem.image);
+      }
+      
+      image = uploadResult.url; // Store the file path, not base64 data
     }
 
     // Update item in database with explicit type
@@ -154,33 +178,38 @@ export async function DELETE(
         { status: 401 }
       );
     }
-    
-    // Check if item exists and belongs to user
-    const existingItem = await prisma.item.findUnique({
+
+    // Get the item (including the image path)
+    const item = await prisma.item.findUnique({
       where: { id },
-      select: { id: true, ownerId: true },
+      select: { id: true, ownerId: true, image: true }
     });
 
-    if (!existingItem) {
+    if (!item) {
       return NextResponse.json(
         { error: 'Item not found' },
         { status: 404 }
       );
     }
 
-    if (existingItem.ownerId !== session.user.id) {
+    if (item.ownerId !== session.user.id) {
       return NextResponse.json(
         { error: 'You do not have permission to delete this item' },
         { status: 403 }
       );
     }
 
-    // Delete item
+    // Delete the image file if it exists
+    if (item.image) {
+      deleteImageFile(item.image);
+    }
+
+    // Delete the item
     await prisma.item.delete({
-      where: { id },
+      where: { id }
     });
 
-    return NextResponse.json({ message: 'Item deleted successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting item:', error);
     return NextResponse.json(
